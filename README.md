@@ -1,3 +1,12 @@
+# Google Summer of Code 2025
+## Data for the Common Good
+**Contributor:** Manjula Kudapa  
+- 📧 Email: manjulakudapa819@gmail.com  
+- 💻 GitHub: [Manjula-819](https://github.com/Manjula-819)
+- 🔗 LinkedIn: [Manjula Kudapa](https://www.linkedin.com/in/manjula-kudapa) 
+
+**Mentor:** Paul Murdoch  
+
 
 # FHIR Resource Viewer Application
 
