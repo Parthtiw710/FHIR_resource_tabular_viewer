@@ -1,19 +1,18 @@
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000
+FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Build context is the project root (so we can access config.yaml)
+# Copy backend requirements and install
+COPY fhir-backend-dynamic/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy backend application code
+COPY fhir-backend-dynamic/app ./app
+
+# Copy config.yaml from project root into the image
+# config.py resolves: /app/app/config.py -> 3 levels up -> /config.yaml
+COPY config.yaml /config.yaml
 
 EXPOSE 8000
-
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=10s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" || exit 1
-
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

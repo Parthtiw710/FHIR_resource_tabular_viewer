@@ -1,26 +1,23 @@
-# Production Build Stage
-FROM node:18 AS builder
-
+# --- Stage 1: Base (shared dependencies) ---
+FROM node:24-alpine AS base
 WORKDIR /app
-
 COPY package*.json ./
-
-RUN npm install
-
+RUN npm install --legacy-peer-deps
 COPY . .
 
-# Build the application using Create React App (Webpack)
+# --- Stage 2: Development (Vite HMR) ---
+FROM base AS dev
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
+# --- Stage 3: Build ---
+FROM base AS build
 RUN npm run build
 
-# Production Runtime Stage
-FROM node:18-alpine
-
+# --- Stage 4: Production (serve static files) ---
+FROM node:24-alpine AS prod
 WORKDIR /app
-
 RUN npm install -g serve
-
-COPY --from=builder /app/build ./build
-
+COPY --from=build /app/dist ./dist
 EXPOSE 3000
-
-CMD ["serve", "-s", "build", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
