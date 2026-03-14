@@ -1,319 +1,160 @@
-import React, { useState } from "react";
-import { Search, RefreshCw, Filter } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, RefreshCw, Filter, SlidersHorizontal, X, CalendarClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const Header = ({
   onSearchChange,
-  onSidebarToggle,
   onRefresh,
   searchTerm = "",
+  onToggleFilters,
+  hasActiveFilters,
+  onClearFilters
 }) => {
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
 
-  // Sync local search term with prop changes (e.g., from session storage restoration)
-  React.useEffect(() => {
+  useEffect(() => {
     setLocalSearchTerm(searchTerm);
   }, [searchTerm]);
 
-  const handleSearchInputChange = (event) => {
-    const term = event.target.value;
-    setLocalSearchTerm(term);
-    // Don't trigger search on keystroke - only on button click or Enter
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (onSearchChange) onSearchChange(localSearchTerm);
   };
 
-  const handleSearchSubmit = () => {
-    // Trigger search when button is clicked or Enter is pressed
-    onSearchChange && onSearchChange(localSearchTerm);
-  };
-
-  const handleKeyPress = (event) => {
-    if (event.key === "Enter") {
-      handleSearchSubmit();
-    }
-  };
-
-  const handleClearSearch = () => {
-    setLocalSearchTerm("");
-    // Trigger search with empty term to reset to normal patient list
-    onSearchChange && onSearchChange("");
-  };
-
-  const handleQuickFiltersClick = () => {
-    console.log("Quick Filters button clicked!");
-    onSidebarToggle && onSidebarToggle();
-  };
-
-  const handleRefresh = () => {
-    onRefresh ? onRefresh() : window.location.reload();
-  };
+  const currentDateTime = new Date().toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 
   return (
-    <div
-      style={{
-        background: "white",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        position: "relative",
-        zIndex: 100,
-      }}
-    >
-      {/* Top Header */}
-      <div
-        style={{
-          padding: "1rem 1.5rem",
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: "600",
-                color: "#333",
-                margin: 0,
-              }}
-            >
-              FHIR Patient Viewer
-            </h1>
-            <p
-              style={{
-                fontSize: "0.9rem",
-                color: "#666",
-                margin: "0.25rem 0 0 0",
-              }}
-            >
-              Healthcare Data Management System
-            </p>
-          </div>
-          <div
-            style={{
-              fontSize: "0.9rem",
-              color: "#666",
-            }}
-          >
-            Current Date and Time:{" "}
-            {new Date().toLocaleString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZoneName: "short",
-            })}
-          </div>
+    <header className="bg-background border-b sticky top-0 z-50 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-6 py-5 border-b bg-background/90 backdrop-blur-sm">
+
+        <div className="space-y-1">
+
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-none">
+            FHIR Patient Viewer
+          </h1>
+
+          <p className="text-sm text-muted-foreground font-medium tracking-wide">
+            Healthcare Data Management System
+          </p>
+
         </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3 sm:mt-0 bg-muted/60 px-3 py-1.5 rounded-md border">
+          <CalendarClock className="h-4 w-4 opacity-70" />
+          <span className="font-medium">{currentDateTime}</span>
+        </div>
+
       </div>
 
       {/* Action Bar */}
-      <div
-        style={{
-          padding: "1rem 1.5rem",
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-            }}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-6 py-3 border-b bg-card/50">
+        <div className="flex items-center gap-4 mb-4 sm:mb-0">
+          <Button
+            onClick={onToggleFilters}
+            variant="destructive"
+            className="flex items-center shadow-sm font-semibold"
           >
-            <button
-              onClick={handleQuickFiltersClick}
-              style={{
-                background: "#dc3545",
-                color: "white",
-                border: "none",
-                padding: "0.5rem 1rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "500",
-                fontSize: "0.9rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <Filter style={{ width: "16px", height: "16px" }} />
-              Quick Filters
-            </button>
-            <h2
-              style={{
-                fontSize: "1.25rem",
-                fontWeight: "600",
-                color: "#333",
-                margin: 0,
-              }}
-            >
-              FHIR Resource Viewer - Patient Search
-            </h2>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-            }}
+            <Filter className="w-4 h-4 mr-2" />
+            Quick Filters
+            {hasActiveFilters && (
+              <span 
+                className="ml-2 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors cursor-pointer"
+                onClick={(e) => {
+                  console.log("Quick Filters Clear clicked!");
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onClearFilters) onClearFilters();
+                }}
+                title="Clear active filters"
+              >
+                <X className="w-3.5 h-3.5 text-white" />
+              </span>
+            )}
+          </Button>
+          <h2 className="text-lg font-semibold text-foreground tracking-tight hidden md:block">
+            FHIR Resource Viewer - Patient Search
+          </h2>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            onClick={() => onRefresh ? onRefresh() : window.location.reload()}
+            variant="outline"
+            className="flex items-center gap-2 w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50"
           >
-            <button
-              onClick={handleRefresh}
-              style={{
-                background: "#f8f9fa",
-                border: "1px solid #dee2e6",
-                padding: "0.5rem 1rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                fontSize: "0.9rem",
-                color: "#007bff",
-              }}
-            >
-              <RefreshCw style={{ width: "16px", height: "16px" }} />
-              <span>Refresh</span>
-            </button>
-          </div>
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </Button>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div
-        style={{
-          padding: "1rem 1.5rem",
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            maxWidth: "400px",
-          }}
+      <div className="px-6 py-4 bg-muted/30">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center w-full max-w-2xl gap-2"
         >
-          <div
-            style={{
-              position: "relative",
-              flex: "1",
-            }}
-          >
-            <Search
-              style={{
-                position: "absolute",
-                left: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: "20px",
-                height: "20px",
-                color: "#999",
-              }}
-            />
-            <input
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
               type="text"
               value={localSearchTerm}
-              onChange={handleSearchInputChange}
-              onKeyPress={handleKeyPress}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
               placeholder="Search patients by name or ID..."
-              style={{
-                padding: "0.5rem 2.5rem 0.5rem 2.5rem",
-                border: "2px solid #dee2e6", // Stronger border
-                borderRadius: "4px 0 0 4px",
-                width: "100%",
-                fontSize: "1rem",
-                height: "38px", // Fixed height to match button
-                boxSizing: "border-box",
-                outline: "none",
-                transition:
-                  "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#007bff";
-                e.target.style.boxShadow = "0 0 0 3px rgba(0,123,255,0.25)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#dee2e6";
-                e.target.style.boxShadow = "none";
-              }}
+              className="pl-9 h-10 w-full bg-background shadow-sm border-muted-foreground/20 focus-visible:ring-blue-500"
             />
-            {/* Clear button - only show when there's text to clear */}
             {localSearchTerm && (
               <button
-                onClick={handleClearSearch}
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  color: "#999",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  width: "20px",
-                  height: "20px",
-                }}
+                type="button"
+                onClick={() => { setLocalSearchTerm(""); if (onSearchChange) onSearchChange(""); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
                 title="Clear search"
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f8f9fa";
-                  e.target.style.color = "#495057";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                  e.target.style.color = "#999";
-                }}
               >
-                ×
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
-          <button
-            onClick={handleSearchSubmit}
-            style={{
-              background: "#007bff",
-              color: "white",
-              border: "2px solid #007bff", // Match input border width
-              padding: "0.5rem 1rem",
-              borderRadius: "0 4px 4px 0",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontSize: "0.9rem",
-              fontWeight: "500",
-              height: "38px", // Match input height
-              boxSizing: "border-box",
-              marginLeft: "-2px", // Overlap border with input for seamless look
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = "#0056b3";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = "#007bff";
-            }}
+          <Button
+            type="submit"
+            className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-medium"
           >
-            <Search style={{ width: "16px", height: "16px" }} />
+            <Search className="w-4 h-4 mr-2" />
             Search
-          </button>
-        </div>
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className={`h-10 ml-2 hidden sm:flex items-center shadow-sm border-muted-foreground/20 transition-all ${hasActiveFilters ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-background"}`}
+            onClick={onToggleFilters}
+          >
+            <SlidersHorizontal className={`w-4 h-4 mr-2 ${hasActiveFilters ? "text-blue-600" : ""}`} />
+            Advanced
+            {hasActiveFilters && (
+              <span 
+                className="ml-2 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300 transition-colors cursor-pointer"
+                onClick={(e) => {
+                  console.log("Advanced Filters Clear clicked!");
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onClearFilters) onClearFilters();
+                }}
+                title="Clear active filters"
+              >
+                <X className="w-3.5 h-3.5 text-blue-800" />
+              </span>
+            )}
+          </Button>
+        </form>
       </div>
-    </div>
+    </header>
   );
 };
 

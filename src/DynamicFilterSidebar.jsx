@@ -41,7 +41,7 @@ const DynamicFilterSidebar = ({
 
   // Fetch filter targets from backend configuration
   const fetchFilterTargets = async () => {
-    if (loadingTargets) return;
+    if (loadingTargets || filterTargets) return;
     
     setLoadingTargets(true);
     try {
@@ -64,7 +64,7 @@ const DynamicFilterSidebar = ({
 
   // Fetch filter UI configuration from backend
   const fetchFilterUIConfig = async () => {
-    if (loadingUIConfig) return;
+    if (loadingUIConfig || filterUIConfig) return;
     
     setLoadingUIConfig(true);
     try {
@@ -98,7 +98,7 @@ const DynamicFilterSidebar = ({
 
   // Fetch available filters per resource type from backend
   const fetchAvailableFilters = async (resourceType) => {
-    if (loadingFilters[resourceType]) return; // Prevent duplicate requests
+    if (loadingFilters[resourceType] || (availableFilters[resourceType] && availableFilters[resourceType].length > 0)) return; // Prevent duplicate requests
     
     setLoadingFilters(prev => ({ ...prev, [resourceType]: true }));
     setFilterErrors(prev => ({ ...prev, [resourceType]: null }));
@@ -171,8 +171,13 @@ const DynamicFilterSidebar = ({
 
   // Initialize staged filters when component mounts or parent active filters change
   useEffect(() => {
-    setActiveFilters(parentActiveFilters);
-    setStagedFilters({ ...parentActiveFilters });
+    // Check if the filters are wrapped in the { filters: ... } payload format sent by applyFilters
+    const unwrappedFilters = parentActiveFilters?.filters 
+      ? { ...parentActiveFilters.filters } 
+      : { ...parentActiveFilters };
+      
+    setActiveFilters(unwrappedFilters);
+    setStagedFilters({ ...unwrappedFilters });
     
   }, [parentActiveFilters]);
 
@@ -334,10 +339,10 @@ const DynamicFilterSidebar = ({
   const applyFilters = () => {
     setActiveFilters({ ...stagedFilters });
     
-    // Wrap filters in the expected structure for the App.js handler
-    const filterPayload = {
-      filters: { ...stagedFilters } // Resource-specific filters go in 'filters' property
-    };
+    // Wrap filters in the expected structure for the App.js handler, or send empty if none
+    const filterPayload = Object.keys(stagedFilters).length > 0 ? {
+      filters: { ...stagedFilters }
+    } : {};
     
     onFilterChange && onFilterChange(filterPayload);
   };
@@ -346,12 +351,8 @@ const DynamicFilterSidebar = ({
     setActiveFilters({});
     setStagedFilters({});
     
-    // Send empty filter payload with expected structure
-    const filterPayload = {
-      filters: {} // Empty filters
-    };
-    
-    onFilterChange && onFilterChange(filterPayload);
+    // Send empty payload to reset App.js state
+    onFilterChange && onFilterChange({});
   };
 
   const resetStagedFilters = () => {
