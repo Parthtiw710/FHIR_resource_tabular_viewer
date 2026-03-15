@@ -250,8 +250,11 @@ const PatientTable = ({
       </div>
 
       {patients.length > 0 && (
-        <div className="flex items-center justify-between px-2 py-2">
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
+        <>
+          <div className="h-24 sm:h-28" aria-hidden="true" />
+
+          <div className="fixed bottom-4 left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 items-center justify-between gap-4 rounded-xl border bg-background/95 px-3 py-2 shadow-lg backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
             <div>
               Showing page {currentPage} of {totalPages}
             </div>
@@ -275,42 +278,43 @@ const PatientTable = ({
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(1)}
-              disabled={currentPage <= 1 || loading}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage <= 1 || loading}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium px-2">{currentPage}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages || loading}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(totalPages)}
-              disabled={currentPage >= totalPages || loading}
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center space-x-2 self-end sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(1)}
+                disabled={currentPage <= 1 || loading}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="px-2 text-sm font-medium">{currentPage}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

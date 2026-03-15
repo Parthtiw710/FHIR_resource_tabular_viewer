@@ -3,6 +3,17 @@ import { Search, RefreshCw, Filter, SlidersHorizontal, X, CalendarClock } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+const formatCurrentDateTime = (timeZone) =>
+  new Date().toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(timeZone ? { timeZone } : {}),
+    timeZoneName: "short",
+  });
+
 const Header = ({
   onSearchChange,
   onRefresh,
@@ -11,45 +22,58 @@ const Header = ({
   hasActiveFilters,
   onClearFilters
 }) => {
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [currentDateTime, setCurrentDateTime] = useState(() => formatCurrentDateTime(userTimeZone));
 
   useEffect(() => {
     setLocalSearchTerm(searchTerm);
   }, [searchTerm]);
+
+  useEffect(() => {
+    let intervalId;
+
+    const updateTime = () => setCurrentDateTime(formatCurrentDateTime(userTimeZone));
+
+    updateTime();
+
+    const msUntilNextMinute = 60000 - (Date.now() % 60000);
+    const timeoutId = setTimeout(() => {
+      updateTime();
+      intervalId = setInterval(updateTime, 60000);
+    }, msUntilNextMinute);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [userTimeZone]);
 
   const handleSearchSubmit = (e) => {
     e?.preventDefault();
     if (onSearchChange) onSearchChange(localSearchTerm);
   };
 
-  const currentDateTime = new Date().toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
-
   return (
     <header className="bg-background border-b sticky top-0 z-50 shadow-sm">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-6 py-5 border-b bg-background/90 backdrop-blur-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center px-6 py-5 border-b bg-linear-to-r from-background via-background to-muted/20 backdrop-blur-sm">
 
-        <div className="space-y-1">
-
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-none">
+        <div className="rounded-xl border bg-card/70 px-4 py-3 shadow-sm">
+          <h1 className="text-2xl sm:text-[1.65rem] font-bold tracking-tight text-foreground leading-none">
             FHIR Patient Viewer
           </h1>
 
-          <p className="text-sm text-muted-foreground font-medium tracking-wide">
+          <p className="mt-1 text-sm text-muted-foreground font-medium tracking-wide">
             Healthcare Data Management System
           </p>
-
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3 sm:mt-0 bg-muted/60 px-3 py-1.5 rounded-md border">
-          <CalendarClock className="h-4 w-4 opacity-70" />
-          <span className="font-medium">{currentDateTime}</span>
+        <div className="inline-flex items-center gap-2.5 text-sm text-foreground mt-1 sm:mt-0 bg-card/90 px-3.5 py-2 rounded-xl border shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md hover:border-blue-200/70">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-sm ring-1 ring-blue-300/40">
+            <div className="absolute -inset-1 -z-10 rounded-xl bg-blue-400/25 blur-sm" />
+            <CalendarClock className="h-4 w-4 drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />
+          </div>
+          <span className="font-semibold tracking-tight">{currentDateTime}</span>
         </div>
 
       </div>
@@ -66,7 +90,7 @@ const Header = ({
             Quick Filters
             {hasActiveFilters && (
               <span 
-                className="ml-2 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors cursor-pointer"
+                className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors cursor-pointer"
                 onClick={(e) => {
                   console.log("Quick Filters Clear clicked!");
                   e.preventDefault();
@@ -139,7 +163,7 @@ const Header = ({
             Advanced
             {hasActiveFilters && (
               <span 
-                className="ml-2 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300 transition-colors cursor-pointer"
+                className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300 transition-colors cursor-pointer"
                 onClick={(e) => {
                   console.log("Advanced Filters Clear clicked!");
                   e.preventDefault();
