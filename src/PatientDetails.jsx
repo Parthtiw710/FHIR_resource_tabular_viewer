@@ -351,10 +351,17 @@ const PatientDetails = ({ patientId, onBackToList }) => {
             {dynamicTabs.map((tab) => (
               <TabsTrigger key={tab.id} value={tab.id} className={`${tabTriggerClass} group relative`}>
                 {tab.label}
-                <X
-                  className="h-3 w-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  className="inline-flex items-center justify-center ml-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                   onClick={(e) => handleRemoveTab(e, tab.id)}
-                />
+                >
+                  <X className="h-3 w-3 hover:text-destructive" style={{ pointerEvents: 'none' }} />
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>
