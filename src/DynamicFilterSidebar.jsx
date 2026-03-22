@@ -432,7 +432,7 @@ const DynamicFilterSidebar = ({
 
       {/* Sticky action bar */}
       {patients.length > 0 && (
-        <div className="border-t border-border px-4 py-3 space-y-2 bg-background">
+        <div className="border-t border-border px-4 py-3 space-y-2 bg-background z-20">
           <Button
             className="w-full"
             onClick={applyFilters}

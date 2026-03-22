@@ -4,6 +4,9 @@ from app.services import source_registry
 from app.services.file_store import parse_fhir_file, FileStore
 from app.config import config
 import logging
+from pydantic import BaseModel
+from app.services.bucket_store import load_from_s3
+
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 logger = logging.getLogger(__name__)
@@ -11,6 +14,13 @@ logger = logging.getLogger(__name__)
 # Maximum upload size: 50 MB
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
+
+class S3SourceRequest(BaseModel):
+    bucket: str               
+    key: str                    
+    region: str = "us-east-1"
+    access_key: str | None = None 
+    secret_key: str | None = None
 
 @router.post("/file")
 async def upload_file_source(file: UploadFile = File(...)):
@@ -108,3 +118,31 @@ async def clear_file_source():
         "message": "No file source was active. Already using live FHIR server.",
         "active_source": "live",
     }
+
+@router.post("/bucket/s3")
+async def connect_s3_source(req: S3SourceRequest):
+    try:
+        store = load_from_s3(
+            bucket=req.bucket,
+            key=req.key,
+            region=req.region,
+            access_key=req.access_key,
+            secret_key=req.secret_key,
+        )
+        name = f"s3://{req.bucket}/{req.key}"
+        source_registry.set_file(name, store)
+        counts = store.resource_counts()
+        total = sum(counts.values())
+        logger.info(f"S3 source activated: {name}, {total} resources")
+        return {
+            "success": True,
+            "name": name,
+            "resource_counts": counts,
+            "total_resources": total,
+            "message": f"Loaded {total} resources across {len(counts)} types from {name}",
+        }
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error loading S3 source: {e}")
+        raise HTTPException(status_code=500, detail="Internal error while loading S3 source")

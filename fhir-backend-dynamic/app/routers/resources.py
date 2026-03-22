@@ -32,8 +32,11 @@ CONFIG_CACHE_DURATION = timedelta(hours=config.config_cache_duration_hours)
 
 def _get_cache_key(params: Dict[str, str]) -> str:
     """Generate cache key from parameters - FIXED: Include filter parameters"""
+    from app.services import source_registry
+    source = source_registry.get_file_name() if source_registry.is_file_active() else "live"
+    
     # Create a stable cache key that includes filter parameters
-    cache_params = []
+    cache_params = [f"src_{source}"]
     
     # Always include pagination params
     cache_params.append(f"count_{params.get('_count', '50')}")
