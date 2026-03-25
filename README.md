@@ -1,88 +1,76 @@
-# FHIR Resource Tabular Viewer
+# FHIR Resource Tabular Viewer (Multi-Source Edition)
 
-A React + FastAPI application for browsing and searching FHIR (Fast Healthcare Interoperability Resources) data in a tabular format. The frontend is built with Vite + React + Tailwind CSS v4, and the backend is a FastAPI proxy that dynamically resolves FHIR server schemas.
-
----
-
-## Table of Contents
-
-- [Architecture](#architecture)
-- [Quick Start with Docker](#quick-start-with-docker)
-- [Local Development (without Docker)](#local-development-without-docker)
-- [Configuration](#configuration)
-- [Project Structure](#project-structure)
-- [Tech Stack](#tech-stack)
-- [API Reference](#api-reference)
+A React + FastAPI application for browsing and searching FHIR (Fast Healthcare Interoperability Resources) data in a tabular format. This branch introduces **Multi-Source Ingestion**, allowing you to dynamically switch between a live FHIR server and local/remote files.
 
 ---
 
-## Architecture
-
-```
-Browser
-  │
-  ├─► :3000  (Frontend — React, served by Vite dev / serve in prod)
-  │           │
-  │           └─► Proxies /api, /resources → :8000
-  │
-  └─► :8000  (Backend — FastAPI + Uvicorn)
-              │
-              └─► https://hapi.fhir.org/baseR4/  (FHIR Server)
-```
-
-In **production**, the React bundle is pre-built and served as static files. The browser calls the backend directly on port `8000`.
-
-In **development**, the Vite dev server runs HMR on port `3000` and server-side-proxies `/api` and `/resources` requests to the backend.
+## 🚀 Key Branch Features: Multi-Source Ingestion
+This branch introduces the architectural extension to ingest FHIR resources from multiple sources:
+- **Local File Upload**: Drag-and-drop JSON/NDJSON FHIR bundles (e.g., Synthea-generated data) to view them in-memory.
+- **S3 Bucket Connector**: Stream FHIR resources direct from AWS S3 buckets using `boto3`.
+- **Dynamic Source UI**: A yellow UI indicator appears when viewing non-live data, allowing you to quickly switch back to the live FHIR server.
+- **In-Memory Store**: Data is parsed into a high-performance singleton `FileStore` that emulates FHIR search and pagination APIs.
 
 ---
 
-## Quick Start with Docker
+## 📦 Quick Start with Docker
 
-> **Prerequisites**: Docker and Docker Compose installed.
+You can run the entire stack (Frontend + Backend) using a single command:
 
-### Production (default)
-
-Builds the React app and serves the static bundle via `serve`:
-
+**1. Build & Start (Production Mode):**
 ```bash
 docker compose up --build
 ```
+*Frontend: http://localhost:3000 | Backend: http://localhost:8000*
 
-| Service  | URL                    |
-|----------|------------------------|
-| Frontend | http://localhost:3000  |
-| Backend  | http://localhost:8000  |
-
-To stop:
-```bash
-docker compose down
-```
-
----
-
-### Development (Hot-Module Replacement)
-
-Mounts your local source files into the container so changes reflect instantly in the browser:
-
+**2. Development Mode (with Hot-Reload):**
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-| Service  | URL                    |
-|----------|------------------------|
-| Frontend | http://localhost:3000  |
-| Backend  | http://localhost:8000  |
+---
 
-Edits to `.jsx`, `.css`, or any frontend file will hot-reload automatically.
+## 🛠️ API Reference (New Multi-Source Endpoints)
 
-> **Note**: In dev mode, config.yaml is also mounted into the backend container so runtime changes to config take effect on backend restart.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/sources/file` | Upload a local FHIR bundle (JSON/NDJSON) |
+| `GET`  | `/api/sources/active` | Get details of the currently active data source |
+| `DELETE` | `/api/sources/file` | Clear uploaded data and revert to live FHIR server |
+| `POST` | `/api/sources/bucket/s3` | Connect and ingest from an S3 bucket |
+| `GET`  | `/api/resources/{type}` | Serves data from the active source (Live or File) |
 
 ---
 
-## Local Development (without Docker)
+## ⚙️ Architecture
+
+```
+Browser
+  │
+  ├─► :3000  (Frontend — React + Vite)
+  │           │
+  │           └─► Proxies /api/sources → :8000
+  │
+  └─► :8000  (Backend — FastAPI + In-Memory FileStore)
+              │
+              ├─► AWS S3 (via Connector)
+              ├─► Local File Uploads
+              └─► https://hapi.fhir.org/baseR4/ (Live Server)
+```
+
+---
+
+## 🛠️ Tech Stack
+- **Frontend**: React 19, Vite, Tailwind CSS v4, Lucide Icons.
+- **Backend**: FastAPI, Uvicorn, `httpx` (async).
+- **Cloud/File**: `boto3` (S3), `tenacity` (retries), singleton `FileStore`.
+- **Containerization**: Docker + Docker Compose.
+
+---
+
+## 🔧 Local Development (without Docker)
 
 ### Backend
-
 ```bash
 cd fhir-backend-dynamic
 pip install -r requirements.txt
@@ -90,119 +78,13 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend
-
 ```bash
 # From project root
 npm install --legacy-peer-deps
 npm run dev
 ```
 
-Frontend will start at http://localhost:3000 and proxy API calls to the backend at http://localhost:8000.
-
 ---
 
-## Configuration
-
-All configuration is driven by `config.yaml` in the project root.
-
-| Key | Description | Default |
-|-----|-------------|---------|
-| `fhir.base_url` | FHIR server base URL | `https://hapi.fhir.org/baseR4/` |
-| `fhir.timeout_seconds` | Request timeout | `30` |
-| `fhir.resource_discovery.mode` | `dynamic` or `static` | `dynamic` |
-| `backend.port` | Backend port | `8000` |
-| `backend.cache.patient_cache_duration_minutes` | Patient cache TTL | `15` |
-| `backend.cache.max_cache_entries` | Max cache size | `200` |
-| `features.condition_code_search` | Enable condition code filter | `true` |
-| `features.age_filtering` | Enable age filter | `true` |
-| `features.gender_filtering` | Enable gender filter | `true` |
-
-### Environment Variable Overrides
-
-The backend also reads these environment variables (override config.yaml values):
-
-| Variable | Config key overridden |
-|---|---|
-| `FHIR_BASE_URL` | `fhir.base_url` |
-| `PORT` | `backend.port` |
-| `PATIENT_CACHE_DURATION` | `backend.cache.patient_cache_duration_minutes` |
-| `MAX_CACHE_ENTRIES` | `backend.cache.max_cache_entries` |
-
-### Frontend Environment Variables (baked in at build time)
-
-| Variable | Description | Default |
-|---|---|---|
-| `VITE_API_BASE_URL` | Backend base URL for browser API calls | `http://localhost:8000` |
-| `VITE_TITLE` | App title | `FHIR Patient Search` |
-| `VITE_DEFAULT_PAGE_SIZE` | Rows per page | `50` |
-| `VITE_DEBUG` | Enable debug logs | `false` |
-
-> These are **build-time** variables. Setting them in docker-compose `environment:` at runtime has no effect on the pre-built bundle. Pass them as Docker build args if deploying to a non-localhost environment.
-
----
-
-## Project Structure
-
-```
-.
-├── config.yaml                    # Shared configuration (backend + frontend)
-├── docker-compose.yml             # Production orchestration
-├── docker-compose.dev.yml         # Development orchestration (HMR)
-│
-├── Dockerfile                     # Frontend multi-stage Dockerfile
-│   ├── base   → dev               # Vite dev server
-│   └── base → build → prod        # Static build served by `serve`
-│
-├── src/                           # React frontend source
-│   ├── App.jsx
-│   ├── api.jsx                    # Backend API client
-│   ├── config.jsx                 # Frontend config (reads VITE_* env vars)
-│   ├── services/                  # Service layer (FHIR data fetching)
-│   └── ...
-│
-├── vite.config.js                 # Vite config — dev proxy /api → backend
-│
-└── fhir-backend-dynamic/          # FastAPI backend
-    ├── Dockerfile                 # Backend Dockerfile (context: project root)
-    ├── requirements.txt
-    └── app/
-        ├── main.py                # FastAPI app entrypoint
-        ├── config.py              # Config loader (reads config.yaml)
-        ├── services/
-        │   ├── fhir.py            # FHIR HTTP client
-        │   └── resource_discovery.py
-        └── routers/
-            ├── health.py          # GET /api/health
-            ├── resources.py       # GET /api/resources/{type}
-            ├── filters.py         # GET /api/filters/...
-            └── metadata.py        # GET /api/metadata/...
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend framework | React 19 + Vite 8 |
-| Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) |
-| Routing | React Router v7 |
-| Icons | Lucide React |
-| Backend | FastAPI + Uvicorn |
-| HTTP client (backend) | httpx (async) |
-| FHIR source | [HAPI FHIR Public Server](https://hapi.fhir.org/baseR4/) |
-| Containerization | Docker + Docker Compose |
-
----
-
-## API Reference
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/resources/{type}` | Paginated FHIR resource list |
-| `GET` | `/api/resources/{type}/{id}` | Single FHIR resource |
-| `GET` | `/api/filters/definitions` | Filter definitions from config.yaml |
-| `GET` | `/api/filters/resources` | Resources with available filters |
-| `GET` | `/api/metadata/resources` | Discovered FHIR resource types |
-| `GET` | `/api/resources/config/status` | Backend config + feature status |
+## 📄 Configuration
+All configuration is driven by `config.yaml` in the project root. You can override the live server URL using the `FHIR_BASE_URL` environment variable.
